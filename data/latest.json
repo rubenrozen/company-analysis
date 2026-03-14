@@ -1,0 +1,12 @@
+[
+  {
+    "ticker": "RTX",
+    "name": "RTX Corporation",
+    "date": "2026-03-14",
+    "file": "data/RTX_2026-03-14.json",
+    "price": 204.52,
+    "verdict": "Buy",
+    "sector": "Industrials",
+    "market_cap": 275278659584
+  }
+]
