@@ -3,59 +3,385 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Company Analysis Dashboard</title>
+<title>Company Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-:root{--bg:#0a0b10;--card:#12131a;--border:#1e2030;--text:#e0e2ed;--muted:#6b7094;--accent:#6c5ce7;--green:#00cec9;--orange:#fdcb6e;--red:#ff7675;--blue:#74b9ff}
+:root{
+  --bg:#08090d;--surface:#0e1016;--card:#13151e;--border:#1c1f2e;--border-hover:#2d3050;
+  --text:#d4d7e5;--muted:#5c6080;--dim:#3a3d55;
+  --accent:#8b7cf6;--accent-glow:rgba(139,124,246,0.12);
+  --green:#34d399;--green-bg:rgba(52,211,153,0.08);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.08);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.08);
+  --blue:#60a5fa;
+  --font-display:'Cormorant Garamond',Georgia,serif;
+  --font-body:'Outfit',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-.header{padding:32px 40px;border-bottom:1px solid var(--border)}
-.header h1{font-size:28px;font-weight:300;color:var(--accent)}
-.header .date{color:var(--muted);font-size:13px;margin-top:4px}
-.companies{display:flex;gap:12px;padding:24px 40px;flex-wrap:wrap}
-.company-card{flex:1;min-width:280px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:all 0.2s}
-.company-card:hover{border-color:var(--accent);transform:translateY(-2px)}
-.company-card.active{border-color:var(--accent);box-shadow:0 0 20px rgba(108,92,231,0.15)}
-.company-card .ticker{font-size:24px;font-weight:700;color:var(--accent)}
-.company-card .name{font-size:13px;color:var(--muted);margin-top:2px}
-.company-card .price{font-size:20px;font-weight:600;margin-top:10px}
-.company-card .verdict{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-top:8px}
-.verdict-buy{background:rgba(0,206,201,0.15);color:var(--green)}
-.verdict-hold{background:rgba(253,203,110,0.15);color:var(--orange)}
-.verdict-sell{background:rgba(255,118,117,0.15);color:var(--red)}
-.detail{padding:24px 40px;display:none}
-.detail.active{display:block}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:16px 0}
-.metric-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
-.metric-card h3{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:8px}
-.metric-card .value{font-size:22px;font-weight:600}
-.chart-container{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;margin:16px 0}
-.chart-container h3{font-size:13px;color:var(--muted);margin-bottom:12px}
-.analysis-section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;margin:16px 0;line-height:1.8;font-size:14px}
-.analysis-section h2{font-size:18px;color:var(--accent);margin:24px 0 12px}
-.analysis-section h3{font-size:15px;color:var(--green);margin:16px 0 8px}
-.analysis-section ul{margin-left:20px;margin-bottom:12px}
-.analysis-section li{margin-bottom:4px}
-.btn-pdf{background:var(--accent);color:white;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;margin:16px 0}
-.btn-pdf:hover{opacity:0.9}
-.loading{text-align:center;padding:60px;color:var(--muted)}
-@media print{body{background:white;color:black}.header,.companies,.btn-pdf{display:none}.detail{display:block!important}.metric-card,.chart-container,.analysis-section{border:1px solid #ddd;break-inside:avoid}}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+
+/* === HEADER === */
+.masthead{padding:48px 56px 40px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(139,124,246,0.03) 0%,transparent 100%)}
+.masthead h1{font-family:var(--font-display);font-size:42px;font-weight:400;color:#fff;letter-spacing:-0.5px}
+.masthead .sub{color:var(--muted);font-size:13px;margin-top:6px;font-weight:300}
+
+/* === COMPANY CARDS (collapsable) === */
+.cards{padding:32px 56px;display:flex;flex-direction:column;gap:12px}
+.co-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:all 0.3s ease}
+.co-card:hover{border-color:var(--border-hover)}
+.co-card.open{border-color:var(--accent);box-shadow:0 0 40px var(--accent-glow)}
+.co-header{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;cursor:pointer;user-select:none}
+.co-header:hover{background:rgba(255,255,255,0.015)}
+.co-left{display:flex;align-items:center;gap:24px}
+.co-ticker{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--accent);min-width:70px}
+.co-name{font-size:15px;color:var(--text);font-weight:400}
+.co-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.co-right{display:flex;align-items:center;gap:28px}
+.co-price{font-size:20px;font-weight:600;color:#fff;font-family:var(--font-mono)}
+.co-verdict{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.v-buy{background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,0.2)}
+.v-hold{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.2)}
+.v-sell{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,0.2)}
+.co-chevron{color:var(--muted);font-size:18px;transition:transform 0.3s}
+.co-card.open .co-chevron{transform:rotate(180deg);color:var(--accent)}
+.co-body{display:none;border-top:1px solid var(--border)}
+.co-card.open .co-body{display:block}
+
+/* === CHAPTER NAV === */
+.chapter-nav{display:flex;gap:6px;padding:20px 28px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.2)}
+.chapter-btn{padding:6px 14px;border-radius:8px;font-size:11px;font-weight:500;color:var(--muted);background:transparent;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-family:var(--font-body)}
+.chapter-btn:hover,.chapter-btn.active{color:var(--accent);border-color:var(--accent);background:var(--accent-glow)}
+
+/* === CONTENT SECTIONS === */
+.chapter{display:none;padding:28px;animation:fadeIn 0.3s ease}
+.chapter.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* === METRICS GRID === */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.metric .label{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);font-weight:500}
+.metric .val{font-size:20px;font-weight:600;color:#fff;margin-top:6px;font-family:var(--font-mono)}
+.metric .val.green{color:var(--green)}.metric .val.red{color:var(--red)}.metric .val.amber{color:var(--amber)}
+
+/* === CHARTS === */
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin:16px 0}
+.chart-wrap h4{font-size:12px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:14px;font-weight:500}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+@media(max-width:768px){.chart-row{grid-template-columns:1fr}}
+
+/* === ANALYSIS TEXT === */
+.analysis{padding:20px 0;font-size:14px;line-height:1.85;color:var(--text)}
+.analysis h2{font-family:var(--font-display);font-size:26px;font-weight:500;color:#fff;margin:32px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.analysis h3{font-size:16px;font-weight:600;color:var(--accent);margin:20px 0 8px}
+.analysis p{margin-bottom:12px}
+.analysis ul{margin:8px 0 16px 20px}
+.analysis li{margin-bottom:4px;color:var(--text)}
+.analysis em{color:var(--muted);font-size:12px}
+.analysis strong{color:#fff;font-weight:600}
+
+/* === TABLE === */
+.tbl{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
+.tbl th{background:var(--surface);color:var(--muted);padding:8px 12px;text-align:left;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;border-bottom:1px solid var(--border)}
+.tbl td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+.tbl tr:hover td{background:rgba(139,124,246,0.03)}
+
+/* === BUTTONS === */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;border:none;font-family:var(--font-body)}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:0.85}
+.btn-outline{background:transparent;color:var(--accent);border:1px solid var(--accent)}.btn-outline:hover{background:var(--accent-glow)}
+
+/* === TAG / BADGE === */
+.tag{display:inline-block;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:600;letter-spacing:0.3px}
+.tag-green{background:var(--green-bg);color:var(--green)}.tag-red{background:var(--red-bg);color:var(--red)}.tag-amber{background:var(--amber-bg);color:var(--amber)}.tag-blue{background:rgba(96,165,250,0.1);color:var(--blue)}
+
+/* === PRINT === */
+@media print{
+  body{background:#fff;color:#111;font-size:11px}
+  .masthead,.cards .co-header,.chapter-nav,.btn{display:none}
+  .co-card{border:none;box-shadow:none}.co-body{display:block!important;border:none}
+  .chapter{display:block!important;page-break-inside:avoid}
+  .metric{border:1px solid #ddd}.metric .val{color:#111}
+  .chart-wrap{border:1px solid #ddd;page-break-inside:avoid}
+  .analysis h2{color:#111;border-color:#ddd}.analysis h3{color:#333}
+}
+
+.loading{text-align:center;padding:80px;color:var(--muted);font-size:15px}
+.empty-state{text-align:center;padding:120px 40px;color:var(--dim)}
+.empty-state h2{font-family:var(--font-display);font-size:32px;color:var(--muted);margin-bottom:12px}
+.empty-state p{color:var(--dim);font-size:14px}
 </style>
 </head>
 <body>
-<div class="header"><h1>Company Analysis Dashboard</h1><div class="date" id="last-update">Loading...</div></div>
-<div class="companies" id="company-cards"></div>
-<div id="detail-container"></div>
+
+<div class="masthead">
+  <h1>Company Analysis</h1>
+  <div class="sub" id="last-update">Loading latest analyses...</div>
+</div>
+
+<div class="cards" id="cards-container">
+  <div class="empty-state" id="empty">
+    <h2>No analyses yet</h2>
+    <p>Run the Colab pipeline to generate your first company analysis.</p>
+  </div>
+</div>
+
 <script>
-const DATA_URL='data/latest.json';
-async function loadDashboard(){try{const res=await fetch(DATA_URL);const companies=await res.json();document.getElementById('last-update').textContent=`Last update: ${companies[0]?.date||'N/A'}`;renderCards(companies);if(companies.length>0)loadCompany(companies[0].file,0)}catch(e){document.getElementById('company-cards').innerHTML='<div class="loading">No data yet. Run the Colab pipeline first.</div>'}}
-function renderCards(companies){const container=document.getElementById('company-cards');container.innerHTML=companies.map((c,i)=>{const vClass=c.verdict?.toLowerCase().includes('buy')?'verdict-buy':c.verdict?.toLowerCase().includes('sell')?'verdict-sell':'verdict-hold';return`<div class="company-card" id="card-${i}" onclick="loadCompany('${c.file}',${i})"><div class="ticker">${c.ticker}</div><div class="name">${c.name}</div><div class="price">$${c.price?.toFixed(2)||'N/A'}</div><div class="verdict ${vClass}">${c.verdict||'N/A'}</div><div style="color:var(--muted);font-size:11px;margin-top:6px">${c.sector} · ${c.date}</div></div>`}).join('')}
-async function loadCompany(file,idx){document.querySelectorAll('.company-card').forEach((c,i)=>c.classList.toggle('active',i===idx));try{const res=await fetch(file);const data=await res.json();renderDetail(data)}catch(e){document.getElementById('detail-container').innerHTML='<div class="loading">Error loading data</div>'}}
-function fmt(n){if(!n&&n!==0)return'N/A';if(Math.abs(n)>=1e9)return'$'+(n/1e9).toFixed(1)+'B';if(Math.abs(n)>=1e6)return'$'+(n/1e6).toFixed(0)+'M';return'$'+n.toFixed(0)}
-function pct(n){return n?(n*100).toFixed(1)+'%':'N/A'}
-function renderDetail(d){const container=document.getElementById('detail-container');const tp=d.target_price||{};container.innerHTML=`<div class="detail active"><button class="btn-pdf" onclick="window.print()">Export PDF</button><div class="grid"><div class="metric-card"><h3>Market Cap</h3><div class="value">${fmt(d.market_cap)}</div></div><div class="metric-card"><h3>Price</h3><div class="value">$${d.price?.toFixed(2)}</div></div><div class="metric-card"><h3>Verdict</h3><div class="value">${d.verdict}</div></div><div class="metric-card"><h3>Target Price</h3><div class="value">$${tp.low||'?'} - $${tp.mid||'?'} - $${tp.high||'?'}</div></div></div><div class="grid"><div class="metric-card"><h3>Gross Margin</h3><div class="value">${pct(d.margins?.gross)}</div></div><div class="metric-card"><h3>Op Margin</h3><div class="value">${pct(d.margins?.operating)}</div></div><div class="metric-card"><h3>Net Margin</h3><div class="value">${pct(d.margins?.net)}</div></div><div class="metric-card"><h3>ROE</h3><div class="value">${pct(d.ratios?.roe)}</div></div></div><div class="grid"><div class="metric-card"><h3>P/E</h3><div class="value">${d.ratios?.pe_trailing?.toFixed(1)||'N/A'}</div></div><div class="metric-card"><h3>EV/EBITDA</h3><div class="value">${d.ratios?.ev_ebitda?.toFixed(1)||'N/A'}</div></div><div class="metric-card"><h3>D/E</h3><div class="value">${d.ratios?.de_ratio?.toFixed(1)||'N/A'}</div></div><div class="metric-card"><h3>Beta</h3><div class="value">${d.ratios?.beta?.toFixed(2)||'N/A'}</div></div></div><div class="grid"><div class="chart-container"><h3>Revenue & Net Income Trend</h3><canvas id="chart-revenue"></canvas></div><div class="chart-container"><h3>Cash Flow</h3><canvas id="chart-cf"></canvas></div></div><div class="grid"><div class="chart-container"><h3>Balance Sheet</h3><canvas id="chart-bs"></canvas></div><div class="chart-container"><h3>Margins</h3><canvas id="chart-margins"></canvas></div></div><div class="analysis-section" id="opus-analysis"></div></div>`;renderCharts(d);const ad=document.getElementById('opus-analysis');if(d.opus_analysis){let h=d.opus_analysis.replace(/\n## /g,'<h2>').replace(/\n### /g,'<h3>').replace(/\n- /g,'<br>• ').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');ad.innerHTML='<h2 style="margin-top:0">Full Analysis</h2>'+h}}
-function renderCharts(d){const years=d.revenue_hist?.map((_,i)=>'Y-'+(d.revenue_hist.length-1-i)).reverse()||[];const rev=[...(d.revenue_hist||[])].reverse();const ni=[...(d.ni_hist||[])].reverse();new Chart(document.getElementById('chart-revenue'),{type:'bar',data:{labels:years,datasets:[{label:'Revenue',data:rev.map(v=>v/1e9),backgroundColor:'rgba(108,92,231,0.6)'},{label:'Net Income',data:ni.map(v=>v/1e9),backgroundColor:'rgba(0,206,201,0.6)'}]},options:{responsive:true,plugins:{legend:{labels:{color:'#6b7094'}}},scales:{y:{ticks:{color:'#6b7094',callback:v=>'$'+v+'B'},grid:{color:'#1e2030'}},x:{ticks:{color:'#6b7094'},grid:{display:false}}}}});const cf=d.cash_flow||{};new Chart(document.getElementById('chart-cf'),{type:'bar',data:{labels:['OpCF','Capex','FCF','Dividends','Buybacks'],datasets:[{data:[cf.opcf/1e9,cf.capex/1e9,cf.fcf/1e9,cf.dividends/1e9,cf.buybacks/1e9],backgroundColor:['rgba(0,206,201,0.6)','rgba(255,118,117,0.6)','rgba(108,92,231,0.6)','rgba(253,203,110,0.6)','rgba(116,185,255,0.6)']}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#6b7094',callback:v=>'$'+v+'B'},grid:{color:'#1e2030'}},x:{ticks:{color:'#6b7094'},grid:{display:false}}}}});const bs=d.balance_sheet||{};new Chart(document.getElementById('chart-bs'),{type:'doughnut',data:{labels:['Equity','Total Debt','Cash+STI','Goodwill','Other Liab'],datasets:[{data:[Math.abs(bs.equity/1e9),bs.total_debt/1e9,bs.cash_sti/1e9,bs.goodwill/1e9,Math.max(0,(bs.total_liab-bs.total_debt)/1e9)],backgroundColor:['rgba(0,206,201,0.7)','rgba(255,118,117,0.7)','rgba(108,92,231,0.7)','rgba(253,203,110,0.7)','rgba(116,185,255,0.4)']}]},options:{responsive:true,plugins:{legend:{labels:{color:'#6b7094'}}}}});const m=d.margins||{};const r=d.ratios||{};new Chart(document.getElementById('chart-margins'),{type:'radar',data:{labels:['Gross Margin','Op Margin','Net Margin','ROE','ROA'],datasets:[{label:d.ticker,data:[(m.gross||0)*100,(m.operating||0)*100,(m.net||0)*100,(r.roe||0)*100,(r.roa||0)*100],borderColor:'rgba(108,92,231,0.8)',backgroundColor:'rgba(108,92,231,0.15)',pointBackgroundColor:'rgba(108,92,231,1)'}]},options:{responsive:true,scales:{r:{ticks:{color:'#6b7094',backdropColor:'transparent'},grid:{color:'#1e2030'},pointLabels:{color:'#6b7094'}}},plugins:{legend:{labels:{color:'#6b7094'}}}}})}
-loadDashboard();
+const CHAPTERS = [
+  {id:'overview', label:'Overview'},
+  {id:'financials', label:'Financials'},
+  {id:'industry', label:'Industry'},
+  {id:'strategy', label:'Strategy & Growth'},
+  {id:'management', label:'Management'},
+  {id:'risks', label:'Risks & Opportunities'},
+  {id:'esg', label:'ESG'},
+  {id:'competition', label:'Competition'},
+  {id:'valuation', label:'Valuation'},
+  {id:'macro', label:'Macro & Regulatory'},
+  {id:'outlook', label:'Outlook'},
+  {id:'conclusion', label:'Conclusion'}
+];
+
+let loadedData = {};
+
+async function init() {
+  try {
+    const r = await fetch('data/latest.json');
+    const list = await r.json();
+    if (!list.length) return;
+    document.getElementById('empty').style.display = 'none';
+    document.getElementById('last-update').textContent = `${list.length} analyses · Last: ${list[0].date}`;
+    const container = document.getElementById('cards-container');
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      const data = await (await fetch(c.file)).json();
+      loadedData[c.ticker] = data;
+      container.appendChild(createCard(data, i));
+    }
+    // Auto-open first
+    if (list.length) toggleCard(list[0].ticker);
+  } catch(e) { console.error(e); }
+}
+
+function createCard(d, idx) {
+  const el = document.createElement('div');
+  el.className = 'co-card';
+  el.id = 'card-' + d.ticker;
+  const vClass = (d.verdict||'').toLowerCase().includes('buy') ? 'v-buy' : (d.verdict||'').toLowerCase().includes('sell') ? 'v-sell' : 'v-hold';
+  el.innerHTML = `
+    <div class="co-header" onclick="toggleCard('${d.ticker}')">
+      <div class="co-left">
+        <span class="co-ticker">${d.ticker}</span>
+        <div><div class="co-name">${d.name}</div><div class="co-meta">${d.sector} · ${d.industry || ''} · ${d.country}</div></div>
+      </div>
+      <div class="co-right">
+        <span class="co-price">$${(d.price||0).toFixed(2)}</span>
+        <span class="co-verdict ${vClass}">${d.verdict||'N/A'}</span>
+        <span class="co-chevron">▼</span>
+      </div>
+    </div>
+    <div class="co-body">
+      <div class="chapter-nav" id="nav-${d.ticker}"></div>
+      <div id="content-${d.ticker}"></div>
+    </div>`;
+  // Build chapter nav
+  setTimeout(() => buildContent(d), 50);
+  return el;
+}
+
+function toggleCard(ticker) {
+  const card = document.getElementById('card-' + ticker);
+  const wasOpen = card.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.co-card').forEach(c => c.classList.remove('open'));
+  if (!wasOpen) {
+    card.classList.add('open');
+    setTimeout(() => card.scrollIntoView({behavior:'smooth', block:'start'}), 100);
+  }
+}
+
+function fmt(n){if(!n&&n!==0)return'N/A';if(Math.abs(n)>=1e12)return'$'+(n/1e12).toFixed(1)+'T';if(Math.abs(n)>=1e9)return'$'+(n/1e9).toFixed(1)+'B';if(Math.abs(n)>=1e6)return'$'+(n/1e6).toFixed(0)+'M';return'$'+n.toLocaleString()}
+function pct(n){return(n!=null&&n!==0)?((n*100).toFixed(1)+'%'):'N/A'}
+function numC(n){return n>0?'green':n<0?'red':''}
+
+function buildContent(d) {
+  const nav = document.getElementById('nav-' + d.ticker);
+  const content = document.getElementById('content-' + d.ticker);
+  // Add PDF button
+  nav.innerHTML = `<button class="btn btn-primary" onclick="window.print()" style="margin-right:12px">⤓ PDF</button>` +
+    CHAPTERS.map((ch,i) => `<button class="chapter-btn${i===0?' active':''}" onclick="showChapter('${d.ticker}','${ch.id}',this)">${ch.label}</button>`).join('');
+  // Build all chapters
+  content.innerHTML = CHAPTERS.map((ch,i) => `<div class="chapter${i===0?' active':''}" id="ch-${d.ticker}-${ch.id}">${buildChapter(ch.id, d)}</div>`).join('');
+  // Render charts after DOM is ready
+  setTimeout(() => renderAllCharts(d), 100);
+}
+
+function showChapter(ticker, chId, btn) {
+  document.querySelectorAll(`#content-${ticker} .chapter`).forEach(c => c.classList.remove('active'));
+  document.querySelectorAll(`#nav-${ticker} .chapter-btn`).forEach(b => b.classList.remove('active'));
+  document.getElementById(`ch-${ticker}-${chId}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+function buildChapter(id, d) {
+  const m = d.margins || {};
+  const r = d.ratios || {};
+  const bs = d.balance_sheet || {};
+  const cf = d.cash_flow || {};
+  const tp = d.target_price || {};
+  const g = d.guidance?.calibration_guidance || d.guidance || {};
+  const opus = d.opus_analysis || '';
+
+  // Extract sections from opus text
+  function section(num, title) {
+    const patterns = [
+      new RegExp(`${num}\\.\\s*${title}[\\s\\S]*?(?=\\n\\d+\\.|\\nCONCLUSION|$)`, 'i'),
+      new RegExp(`${title}[\\s\\S]*?(?=\\n\\d+\\.|\\nCONCLUSION|$)`, 'i')
+    ];
+    for (const p of patterns) {
+      const match = opus.match(p);
+      if (match) return formatText(match[0]);
+    }
+    return '<p style="color:var(--dim)">Analysis not available for this section.</p>';
+  }
+
+  function formatText(t) {
+    return t.replace(/### (.*)/g, '<h3>$1</h3>')
+            .replace(/## (.*)/g, '<h2>$1</h2>')
+            .replace(/# (.*)/g, '<h2>$1</h2>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/^- (.*)/gm, '<li>$1</li>')
+            .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/\n/g, '<br>');
+  }
+
+  switch(id) {
+    case 'overview': return `
+      <div class="metrics">
+        <div class="metric"><div class="label">Market Cap</div><div class="val">${fmt(d.market_cap)}</div></div>
+        <div class="metric"><div class="label">Price</div><div class="val">$${(d.price||0).toFixed(2)}</div></div>
+        <div class="metric"><div class="label">Sector</div><div class="val" style="font-size:14px">${d.sector||'N/A'}</div></div>
+        <div class="metric"><div class="label">Verdict</div><div class="val ${numC(1)}">${d.verdict||'N/A'}</div></div>
+        <div class="metric"><div class="label">Target (Low-Mid-High)</div><div class="val" style="font-size:14px">$${tp.low||'?'} — $${tp.mid||'?'} — $${tp.high||'?'}</div></div>
+        <div class="metric"><div class="label">Growth Phase</div><div class="val" style="font-size:14px">${g.growth_phase||'N/A'}</div></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-wrap"><h4>Revenue & Net Income Trend</h4><canvas id="c-rev-${d.ticker}"></canvas></div>
+        <div class="chart-wrap"><h4>Profitability Radar</h4><canvas id="c-radar-${d.ticker}"></canvas></div>
+      </div>
+      <div class="analysis">${section('1', 'COMPANY PROFILE')}</div>`;
+
+    case 'financials': return `
+      <div class="metrics">
+        <div class="metric"><div class="label">Gross Margin</div><div class="val">${pct(m.gross)}</div></div>
+        <div class="metric"><div class="label">Op Margin</div><div class="val">${pct(m.operating)}</div></div>
+        <div class="metric"><div class="label">Net Margin</div><div class="val">${pct(m.net)}</div></div>
+        <div class="metric"><div class="label">ROE</div><div class="val">${pct(r.roe)}</div></div>
+        <div class="metric"><div class="label">P/E</div><div class="val">${(r.pe_trailing||0).toFixed(1)}x</div></div>
+        <div class="metric"><div class="label">EV/EBITDA</div><div class="val">${(r.ev_ebitda||0).toFixed(1)}x</div></div>
+        <div class="metric"><div class="label">D/E</div><div class="val">${(r.de_ratio||0).toFixed(1)}</div></div>
+        <div class="metric"><div class="label">Beta</div><div class="val">${(r.beta||0).toFixed(2)}</div></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-wrap"><h4>Cash Flow Breakdown</h4><canvas id="c-cf-${d.ticker}"></canvas></div>
+        <div class="chart-wrap"><h4>Balance Sheet Structure</h4><canvas id="c-bs-${d.ticker}"></canvas></div>
+      </div>
+      <table class="tbl"><tr><th>Item</th><th>Value</th></tr>
+        <tr><td>Total Assets</td><td>${fmt(bs.total_assets)}</td></tr>
+        <tr><td>Total Liabilities</td><td>${fmt(bs.total_liab)}</td></tr>
+        <tr><td>Equity</td><td>${fmt(bs.equity)}</td></tr>
+        <tr><td>Total Debt</td><td>${fmt(bs.total_debt)}</td></tr>
+        <tr><td>Cash + STI</td><td>${fmt(bs.cash_sti)}</td></tr>
+        <tr><td>Net Debt</td><td>${fmt((bs.total_debt||0)-(bs.cash_sti||0))}</td></tr>
+        <tr><td>Goodwill</td><td>${fmt(bs.goodwill)}</td></tr>
+      </table>
+      <div class="analysis">${section('2', 'MARKET PERFORMANCE')}</div>`;
+
+    case 'industry': return `
+      <div class="chart-wrap"><h4>EBITDA & FCF Trend</h4><canvas id="c-ebitda-${d.ticker}"></canvas></div>
+      <div class="analysis">${section('3', 'INDUSTRY POSITIONING')}</div>`;
+
+    case 'strategy': return `<div class="analysis">${section('4', 'STRATEGY')}</div>`;
+    case 'management': return `<div class="analysis">${section('5', 'MANAGEMENT')}</div>`;
+
+    case 'risks': return `
+      <div class="metrics">
+        ${(g.key_risks||[]).map(r => `<div class="metric"><div class="label">Risk</div><div class="val red" style="font-size:13px">${r}</div></div>`).join('')}
+        ${(g.key_strengths||[]).map(s => `<div class="metric"><div class="label">Strength</div><div class="val green" style="font-size:13px">${s}</div></div>`).join('')}
+      </div>
+      <div class="analysis">${section('6', 'RISK FACTORS')}</div>`;
+
+    case 'esg': return `<div class="analysis">${section('7', 'ENVIRONMENTAL')}</div>`;
+
+    case 'competition': return `
+      <div class="analysis">${section('8', 'COMPETITIVE LANDSCAPE')}</div>`;
+
+    case 'valuation': return `
+      <div class="metrics">
+        <div class="metric"><div class="label">Rev Quality</div><div class="val" style="font-size:14px">${g.revenue_quality||'N/A'}</div></div>
+        <div class="metric"><div class="label">Earnings Predict.</div><div class="val" style="font-size:14px">${g.earnings_predictability||'N/A'}</div></div>
+        <div class="metric"><div class="label">Debt Concern</div><div class="val" style="font-size:14px">${g.debt_concern_level||'N/A'}</div></div>
+        <div class="metric"><div class="label">Capital Intensity</div><div class="val" style="font-size:14px">${g.capital_intensity||'N/A'}</div></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="label">Recommended Models</div><div class="val" style="font-size:12px">${(g.recommended_models||[]).join(', ')}</div></div>
+        <div class="metric"><div class="label">Excluded Models</div><div class="val red" style="font-size:12px">${(g.excluded_models||[]).join(', ')}</div></div>
+      </div>
+      <div class="analysis">${section('9', 'VALUATION')}</div>`;
+
+    case 'macro': return `<div class="analysis">${section('10', 'MACROECONOMIC')}</div>`;
+    case 'outlook': return `
+      <div class="chart-wrap"><h4>Historical Debt vs Equity</h4><canvas id="c-deq-${d.ticker}"></canvas></div>
+      <div class="analysis">${section('12', 'FINANCIAL OUTLOOK')}</div>`;
+
+    case 'conclusion': return `
+      <div class="analysis">${section('CONCLUSION', 'CONCLUSION')}</div>
+      <div style="margin-top:24px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px">
+        <h4 style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px">Analysis Summary</h4>
+        <table class="tbl">
+          <tr><td>Company Type</td><td>${g.company_type||'N/A'}</td><td>Growth Phase</td><td>${g.growth_phase||'N/A'}</td></tr>
+          <tr><td>Verdict</td><td><strong>${g.investment_verdict||'N/A'}</strong></td><td>CoE Method</td><td>${g.cost_of_equity_recommendation||'N/A'}</td></tr>
+          <tr><td>Terminal Growth</td><td>${g.terminal_growth_recommendation||'N/A'}</td><td>EV Bridge</td><td>${g.ev_bridge_recommendation||'N/A'}</td></tr>
+          <tr><td>SBC Materiality</td><td>${g.sbc_materiality||'N/A'}</td><td>Goodwill Risk</td><td>${g.goodwill_risk||'N/A'}</td></tr>
+        </table>
+      </div>`;
+    default: return '';
+  }
+}
+
+function renderAllCharts(d) {
+  const t = d.ticker;
+  const opts = {responsive:true,plugins:{legend:{labels:{color:'#5c6080',font:{family:'Outfit',size:11}}}}};
+  const scaleY = {ticks:{color:'#5c6080',font:{size:10},callback:v=>'$'+v+'B'},grid:{color:'#1c1f2e'}};
+  const scaleX = {ticks:{color:'#5c6080'},grid:{display:false}};
+  const years = (d.revenue_hist||[]).map((_,i) => 'Y-'+(d.revenue_hist.length-1-i)).reverse();
+  const rev = [...(d.revenue_hist||[])].reverse();
+  const ni = [...(d.ni_hist||[])].reverse();
+  const ebitda = [...(d.ebitda_hist||[])].reverse();
+  const fcf = [...(d.fcf_hist||[])].reverse();
+  const debt = [...(d.debt_hist||[])].reverse();
+  const eq = [...(d.equity_hist||[])].reverse();
+  const m=d.margins||{};const r=d.ratios||{};const cf=d.cash_flow||{};const bs=d.balance_sheet||{};
+
+  try{new Chart(document.getElementById('c-rev-'+t),{type:'bar',data:{labels:years,datasets:[{label:'Revenue',data:rev.map(v=>v/1e9),backgroundColor:'rgba(139,124,246,0.5)',borderRadius:4},{label:'Net Income',data:ni.map(v=>v/1e9),backgroundColor:'rgba(52,211,153,0.5)',borderRadius:4}]},options:{...opts,scales:{y:scaleY,x:scaleX}}})}catch(e){}
+
+  try{new Chart(document.getElementById('c-radar-'+t),{type:'radar',data:{labels:['Gross','Op Margin','Net','ROE','ROA'],datasets:[{label:t,data:[(m.gross||0)*100,(m.operating||0)*100,(m.net||0)*100,(r.roe||0)*100,(r.roa||0)*100],borderColor:'rgba(139,124,246,0.8)',backgroundColor:'rgba(139,124,246,0.1)',pointBackgroundColor:'#8b7cf6'}]},options:{...opts,scales:{r:{ticks:{color:'#5c6080',backdropColor:'transparent'},grid:{color:'#1c1f2e'},pointLabels:{color:'#5c6080',font:{size:11}}}}}})}catch(e){}
+
+  try{new Chart(document.getElementById('c-cf-'+t),{type:'bar',data:{labels:['OpCF','Capex','FCF','Dividends','Buybacks','SBC'],datasets:[{data:[cf.opcf/1e9,cf.capex/1e9,cf.fcf/1e9,cf.dividends/1e9,cf.buybacks/1e9,cf.sbc/1e9],backgroundColor:['rgba(52,211,153,0.6)','rgba(248,113,113,0.6)','rgba(139,124,246,0.6)','rgba(251,191,36,0.6)','rgba(96,165,250,0.6)','rgba(156,163,175,0.4)'],borderRadius:4}]},options:{...opts,plugins:{legend:{display:false}},scales:{y:scaleY,x:scaleX}}})}catch(e){}
+
+  try{new Chart(document.getElementById('c-bs-'+t),{type:'doughnut',data:{labels:['Equity','Debt','Cash','Goodwill','Other'],datasets:[{data:[Math.abs(bs.equity||0)/1e9,(bs.total_debt||0)/1e9,(bs.cash_sti||0)/1e9,(bs.goodwill||0)/1e9,Math.max(0,((bs.total_liab||0)-(bs.total_debt||0))/1e9)],backgroundColor:['rgba(52,211,153,0.7)','rgba(248,113,113,0.7)','rgba(139,124,246,0.7)','rgba(251,191,36,0.7)','rgba(96,165,250,0.3)']}]},options:{...opts}})}catch(e){}
+
+  try{new Chart(document.getElementById('c-ebitda-'+t),{type:'line',data:{labels:years,datasets:[{label:'EBITDA',data:ebitda.map(v=>v/1e9),borderColor:'#8b7cf6',backgroundColor:'rgba(139,124,246,0.08)',fill:true,tension:0.3},{label:'FCF',data:fcf.map(v=>v/1e9),borderColor:'#34d399',backgroundColor:'rgba(52,211,153,0.08)',fill:true,tension:0.3}]},options:{...opts,scales:{y:scaleY,x:scaleX}}})}catch(e){}
+
+  try{new Chart(document.getElementById('c-deq-'+t),{type:'bar',data:{labels:years,datasets:[{label:'Total Debt',data:debt.map(v=>v/1e9),backgroundColor:'rgba(248,113,113,0.5)',borderRadius:4},{label:'Equity',data:eq.map(v=>v/1e9),backgroundColor:'rgba(52,211,153,0.5)',borderRadius:4}]},options:{...opts,scales:{y:scaleY,x:scaleX}}})}catch(e){}
+}
+
+init();
 </script>
 </body>
 </html>
