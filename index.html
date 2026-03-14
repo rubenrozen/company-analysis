@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Company Analysis Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#0a0b10;--card:#12131a;--border:#1e2030;--text:#e0e2ed;--muted:#6b7094;--accent:#6c5ce7;--green:#00cec9;--orange:#fdcb6e;--red:#ff7675;--blue:#74b9ff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{padding:32px 40px;border-bottom:1px solid var(--border)}
+.header h1{font-size:28px;font-weight:300;color:var(--accent)}
+.header .date{color:var(--muted);font-size:13px;margin-top:4px}
+.companies{display:flex;gap:12px;padding:24px 40px;flex-wrap:wrap}
+.company-card{flex:1;min-width:280px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:all 0.2s}
+.company-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.company-card.active{border-color:var(--accent);box-shadow:0 0 20px rgba(108,92,231,0.15)}
+.company-card .ticker{font-size:24px;font-weight:700;color:var(--accent)}
+.company-card .name{font-size:13px;color:var(--muted);margin-top:2px}
+.company-card .price{font-size:20px;font-weight:600;margin-top:10px}
+.company-card .verdict{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-top:8px}
+.verdict-buy{background:rgba(0,206,201,0.15);color:var(--green)}
+.verdict-hold{background:rgba(253,203,110,0.15);color:var(--orange)}
+.verdict-sell{background:rgba(255,118,117,0.15);color:var(--red)}
+.detail{padding:24px 40px;display:none}
+.detail.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:16px 0}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.metric-card h3{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:8px}
+.metric-card .value{font-size:22px;font-weight:600}
+.chart-container{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;margin:16px 0}
+.chart-container h3{font-size:13px;color:var(--muted);margin-bottom:12px}
+.analysis-section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;margin:16px 0;line-height:1.8;font-size:14px}
+.analysis-section h2{font-size:18px;color:var(--accent);margin:24px 0 12px}
+.analysis-section h3{font-size:15px;color:var(--green);margin:16px 0 8px}
+.analysis-section ul{margin-left:20px;margin-bottom:12px}
+.analysis-section li{margin-bottom:4px}
+.btn-pdf{background:var(--accent);color:white;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;margin:16px 0}
+.btn-pdf:hover{opacity:0.9}
+.loading{text-align:center;padding:60px;color:var(--muted)}
+@media print{body{background:white;color:black}.header,.companies,.btn-pdf{display:none}.detail{display:block!important}.metric-card,.chart-container,.analysis-section{border:1px solid #ddd;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="header"><h1>Company Analysis Dashboard</h1><div class="date" id="last-update">Loading...</div></div>
+<div class="companies" id="company-cards"></div>
+<div id="detail-container"></div>
+<script>
+const DATA_URL='data/latest.json';
+async function loadDashboard(){try{const res=await fetch(DATA_URL);const companies=await res.json();document.getElementById('last-update').textContent=`Last update: ${companies[0]?.date||'N/A'}`;renderCards(companies);if(companies.length>0)loadCompany(companies[0].file,0)}catch(e){document.getElementById('company-cards').innerHTML='<div class="loading">No data yet. Run the Colab pipeline first.</div>'}}
+function renderCards(companies){const container=document.getElementById('company-cards');container.innerHTML=companies.map((c,i)=>{const vClass=c.verdict?.toLowerCase().includes('buy')?'verdict-buy':c.verdict?.toLowerCase().includes('sell')?'verdict-sell':'verdict-hold';return`<div class="company-card" id="card-${i}" onclick="loadCompany('${c.file}',${i})"><div class="ticker">${c.ticker}</div><div class="name">${c.name}</div><div class="price">$${c.price?.toFixed(2)||'N/A'}</div><div class="verdict ${vClass}">${c.verdict||'N/A'}</div><div style="color:var(--muted);font-size:11px;margin-top:6px">${c.sector} · ${c.date}</div></div>`}).join('')}
+async function loadCompany(file,idx){document.querySelectorAll('.company-card').forEach((c,i)=>c.classList.toggle('active',i===idx));try{const res=await fetch(file);const data=await res.json();renderDetail(data)}catch(e){document.getElementById('detail-container').innerHTML='<div class="loading">Error loading data</div>'}}
+function fmt(n){if(!n&&n!==0)return'N/A';if(Math.abs(n)>=1e9)return'$'+(n/1e9).toFixed(1)+'B';if(Math.abs(n)>=1e6)return'$'+(n/1e6).toFixed(0)+'M';return'$'+n.toFixed(0)}
+function pct(n){return n?(n*100).toFixed(1)+'%':'N/A'}
+function renderDetail(d){const container=document.getElementById('detail-container');const tp=d.target_price||{};container.innerHTML=`<div class="detail active"><button class="btn-pdf" onclick="window.print()">Export PDF</button><div class="grid"><div class="metric-card"><h3>Market Cap</h3><div class="value">${fmt(d.market_cap)}</div></div><div class="metric-card"><h3>Price</h3><div class="value">$${d.price?.toFixed(2)}</div></div><div class="metric-card"><h3>Verdict</h3><div class="value">${d.verdict}</div></div><div class="metric-card"><h3>Target Price</h3><div class="value">$${tp.low||'?'} - $${tp.mid||'?'} - $${tp.high||'?'}</div></div></div><div class="grid"><div class="metric-card"><h3>Gross Margin</h3><div class="value">${pct(d.margins?.gross)}</div></div><div class="metric-card"><h3>Op Margin</h3><div class="value">${pct(d.margins?.operating)}</div></div><div class="metric-card"><h3>Net Margin</h3><div class="value">${pct(d.margins?.net)}</div></div><div class="metric-card"><h3>ROE</h3><div class="value">${pct(d.ratios?.roe)}</div></div></div><div class="grid"><div class="metric-card"><h3>P/E</h3><div class="value">${d.ratios?.pe_trailing?.toFixed(1)||'N/A'}</div></div><div class="metric-card"><h3>EV/EBITDA</h3><div class="value">${d.ratios?.ev_ebitda?.toFixed(1)||'N/A'}</div></div><div class="metric-card"><h3>D/E</h3><div class="value">${d.ratios?.de_ratio?.toFixed(1)||'N/A'}</div></div><div class="metric-card"><h3>Beta</h3><div class="value">${d.ratios?.beta?.toFixed(2)||'N/A'}</div></div></div><div class="grid"><div class="chart-container"><h3>Revenue & Net Income Trend</h3><canvas id="chart-revenue"></canvas></div><div class="chart-container"><h3>Cash Flow</h3><canvas id="chart-cf"></canvas></div></div><div class="grid"><div class="chart-container"><h3>Balance Sheet</h3><canvas id="chart-bs"></canvas></div><div class="chart-container"><h3>Margins</h3><canvas id="chart-margins"></canvas></div></div><div class="analysis-section" id="opus-analysis"></div></div>`;renderCharts(d);const ad=document.getElementById('opus-analysis');if(d.opus_analysis){let h=d.opus_analysis.replace(/\n## /g,'<h2>').replace(/\n### /g,'<h3>').replace(/\n- /g,'<br>• ').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');ad.innerHTML='<h2 style="margin-top:0">Full Analysis</h2>'+h}}
+function renderCharts(d){const years=d.revenue_hist?.map((_,i)=>'Y-'+(d.revenue_hist.length-1-i)).reverse()||[];const rev=[...(d.revenue_hist||[])].reverse();const ni=[...(d.ni_hist||[])].reverse();new Chart(document.getElementById('chart-revenue'),{type:'bar',data:{labels:years,datasets:[{label:'Revenue',data:rev.map(v=>v/1e9),backgroundColor:'rgba(108,92,231,0.6)'},{label:'Net Income',data:ni.map(v=>v/1e9),backgroundColor:'rgba(0,206,201,0.6)'}]},options:{responsive:true,plugins:{legend:{labels:{color:'#6b7094'}}},scales:{y:{ticks:{color:'#6b7094',callback:v=>'$'+v+'B'},grid:{color:'#1e2030'}},x:{ticks:{color:'#6b7094'},grid:{display:false}}}}});const cf=d.cash_flow||{};new Chart(document.getElementById('chart-cf'),{type:'bar',data:{labels:['OpCF','Capex','FCF','Dividends','Buybacks'],datasets:[{data:[cf.opcf/1e9,cf.capex/1e9,cf.fcf/1e9,cf.dividends/1e9,cf.buybacks/1e9],backgroundColor:['rgba(0,206,201,0.6)','rgba(255,118,117,0.6)','rgba(108,92,231,0.6)','rgba(253,203,110,0.6)','rgba(116,185,255,0.6)']}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#6b7094',callback:v=>'$'+v+'B'},grid:{color:'#1e2030'}},x:{ticks:{color:'#6b7094'},grid:{display:false}}}}});const bs=d.balance_sheet||{};new Chart(document.getElementById('chart-bs'),{type:'doughnut',data:{labels:['Equity','Total Debt','Cash+STI','Goodwill','Other Liab'],datasets:[{data:[Math.abs(bs.equity/1e9),bs.total_debt/1e9,bs.cash_sti/1e9,bs.goodwill/1e9,Math.max(0,(bs.total_liab-bs.total_debt)/1e9)],backgroundColor:['rgba(0,206,201,0.7)','rgba(255,118,117,0.7)','rgba(108,92,231,0.7)','rgba(253,203,110,0.7)','rgba(116,185,255,0.4)']}]},options:{responsive:true,plugins:{legend:{labels:{color:'#6b7094'}}}}});const m=d.margins||{};const r=d.ratios||{};new Chart(document.getElementById('chart-margins'),{type:'radar',data:{labels:['Gross Margin','Op Margin','Net Margin','ROE','ROA'],datasets:[{label:d.ticker,data:[(m.gross||0)*100,(m.operating||0)*100,(m.net||0)*100,(r.roe||0)*100,(r.roa||0)*100],borderColor:'rgba(108,92,231,0.8)',backgroundColor:'rgba(108,92,231,0.15)',pointBackgroundColor:'rgba(108,92,231,1)'}]},options:{responsive:true,scales:{r:{ticks:{color:'#6b7094',backdropColor:'transparent'},grid:{color:'#1e2030'},pointLabels:{color:'#6b7094'}}},plugins:{legend:{labels:{color:'#6b7094'}}}}})}
+loadDashboard();
+</script>
+</body>
+</html>
