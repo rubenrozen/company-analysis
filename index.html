@@ -265,16 +265,34 @@ function buildChapter(id, d) {
       <div class="metrics">
         <div class="metric"><div class="label">Market Cap</div><div class="val">${fmt(d.market_cap)}</div></div>
         <div class="metric"><div class="label">Price</div><div class="val">$${(d.price||0).toFixed(2)}</div></div>
-        <div class="metric"><div class="label">Sector</div><div class="val" style="font-size:14px">${d.sector||'N/A'}</div></div>
+        <div class="metric"><div class="label">52W High</div><div class="val">$${(d.extra_info?.week52_high||0).toFixed(2)}</div></div>
+        <div class="metric"><div class="label">52W Low</div><div class="val">$${(d.extra_info?.week52_low||0).toFixed(2)}</div></div>
         <div class="metric"><div class="label">Verdict</div><div class="val ${numC(1)}">${d.verdict||'N/A'}</div></div>
         <div class="metric"><div class="label">Target (Low-Mid-High)</div><div class="val" style="font-size:14px">$${tp.low||'?'} — $${tp.mid||'?'} — $${tp.high||'?'}</div></div>
+        <div class="metric"><div class="label">Analyst Target</div><div class="val">$${(d.extra_info?.target_mean||0).toFixed(2)}</div></div>
         <div class="metric"><div class="label">Growth Phase</div><div class="val" style="font-size:14px">${g.growth_phase||'N/A'}</div></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-wrap"><h4>1 Year Price Chart</h4><canvas id="c-price1y-${d.ticker}"></canvas></div>
+        <div class="chart-wrap"><h4>1 Month Price Chart</h4><canvas id="c-price1m-${d.ticker}"></canvas></div>
       </div>
       <div class="chart-row">
         <div class="chart-wrap"><h4>Revenue & Net Income Trend</h4><canvas id="c-rev-${d.ticker}"></canvas></div>
         <div class="chart-wrap"><h4>Profitability Radar</h4><canvas id="c-radar-${d.ticker}"></canvas></div>
       </div>
-      <div class="analysis">${section('1', 'COMPANY PROFILE')}</div>`;
+      ${d.rev_breakdown ? `<div class="chart-row">
+        <div class="chart-wrap"><h4>Revenue by Geography</h4><canvas id="c-revgeo-${d.ticker}"></canvas></div>
+        <div class="chart-wrap"><h4>Revenue by Segment</h4><canvas id="c-revseg-${d.ticker}"></canvas></div>
+      </div>` : ''}
+      <div class="analysis">${section('1', 'COMPANY PROFILE')}</div>
+      ${d.competitors?.length ? `<h4 style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin:20px 0 8px">Competitors</h4>
+      <table class="tbl"><tr><th>Ticker</th><th>Name</th><th>Reasoning</th></tr>
+      ${d.competitors.map(c=>`<tr><td style="color:var(--accent);font-family:var(--font-mono)">${c.ticker||''}</td><td>${c.name||''}</td><td style="font-size:12px">${c.reasoning||''}</td></tr>`).join('')}
+      </table>` : ''}
+      ${d.inst_holders?.length ? `<h4 style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin:20px 0 8px">Top Institutional Holders</h4>
+      <table class="tbl"><tr><th>Holder</th><th>% Held</th></tr>
+      ${d.inst_holders.slice(0,5).map(h=>`<tr><td>${h.holder}</td><td>${(h.pct_held*100).toFixed(1)}%</td></tr>`).join('')}
+      </table>` : ''}`;
 
     case 'financials': return `
       <div class="metrics">
@@ -283,22 +301,29 @@ function buildChapter(id, d) {
         <div class="metric"><div class="label">Net Margin</div><div class="val">${pct(m.net)}</div></div>
         <div class="metric"><div class="label">ROE</div><div class="val">${pct(r.roe)}</div></div>
         <div class="metric"><div class="label">P/E</div><div class="val">${(r.pe_trailing||0).toFixed(1)}x</div></div>
+        <div class="metric"><div class="label">P/E Fwd</div><div class="val">${(r.pe_forward||0).toFixed(1)}x</div></div>
         <div class="metric"><div class="label">EV/EBITDA</div><div class="val">${(r.ev_ebitda||0).toFixed(1)}x</div></div>
+        <div class="metric"><div class="label">P/Book</div><div class="val">${(d.extra_info?.p_book||0).toFixed(1)}x</div></div>
         <div class="metric"><div class="label">D/E</div><div class="val">${(r.de_ratio||0).toFixed(1)}</div></div>
         <div class="metric"><div class="label">Beta</div><div class="val">${(r.beta||0).toFixed(2)}</div></div>
+        <div class="metric"><div class="label">EPS TTM</div><div class="val">$${(d.extra_info?.eps_trailing||0).toFixed(2)}</div></div>
+        <div class="metric"><div class="label">EPS Fwd</div><div class="val">$${(d.extra_info?.eps_forward||0).toFixed(2)}</div></div>
+        <div class="metric"><div class="label">Div Yield</div><div class="val">${pct(d.extra_info?.dividend_yield)}</div></div>
+        <div class="metric"><div class="label">Payout</div><div class="val">${pct(d.extra_info?.payout_ratio)}</div></div>
+        <div class="metric"><div class="label">PEG</div><div class="val">${(d.extra_info?.trailing_peg||0).toFixed(1)}</div></div>
+        <div class="metric"><div class="label">Rev/Share</div><div class="val">$${(d.extra_info?.revenue_per_share||0).toFixed(1)}</div></div>
       </div>
       <div class="chart-row">
         <div class="chart-wrap"><h4>Cash Flow Breakdown</h4><canvas id="c-cf-${d.ticker}"></canvas></div>
         <div class="chart-wrap"><h4>Balance Sheet Structure</h4><canvas id="c-bs-${d.ticker}"></canvas></div>
       </div>
-      <table class="tbl"><tr><th>Item</th><th>Value</th></tr>
-        <tr><td>Total Assets</td><td>${fmt(bs.total_assets)}</td></tr>
-        <tr><td>Total Liabilities</td><td>${fmt(bs.total_liab)}</td></tr>
-        <tr><td>Equity</td><td>${fmt(bs.equity)}</td></tr>
-        <tr><td>Total Debt</td><td>${fmt(bs.total_debt)}</td></tr>
-        <tr><td>Cash + STI</td><td>${fmt(bs.cash_sti)}</td></tr>
-        <tr><td>Net Debt</td><td>${fmt((bs.total_debt||0)-(bs.cash_sti||0))}</td></tr>
-        <tr><td>Goodwill</td><td>${fmt(bs.goodwill)}</td></tr>
+      <table class="tbl"><tr><th>Item</th><th>Value</th><th>Item</th><th>Value</th></tr>
+        <tr><td>Total Assets</td><td>${fmt(bs.total_assets)}</td><td>OpCF</td><td>${fmt(cf.opcf)}</td></tr>
+        <tr><td>Total Liabilities</td><td>${fmt(bs.total_liab)}</td><td>FCF</td><td>${fmt(cf.fcf)}</td></tr>
+        <tr><td>Equity</td><td>${fmt(bs.equity)}</td><td>Dividends</td><td>${fmt(cf.dividends)}</td></tr>
+        <tr><td>Total Debt</td><td>${fmt(bs.total_debt)}</td><td>Buybacks</td><td>${fmt(cf.buybacks)}</td></tr>
+        <tr><td>Cash + STI</td><td>${fmt(bs.cash_sti)}</td><td>SBC</td><td>${fmt(cf.sbc)}</td></tr>
+        <tr><td>Net Debt</td><td>${fmt((bs.total_debt||0)-(bs.cash_sti||0))}</td><td>Goodwill</td><td>${fmt(bs.goodwill)}</td></tr>
       </table>
       <div class="analysis">${section('2', 'MARKET PERFORMANCE')}</div>`;
 
@@ -369,6 +394,14 @@ function renderAllCharts(d) {
   const m=d.margins||{};const r=d.ratios||{};const cf=d.cash_flow||{};const bs=d.balance_sheet||{};
 
   try{new Chart(document.getElementById('c-rev-'+t),{type:'bar',data:{labels:years,datasets:[{label:'Revenue',data:rev.map(v=>v/1e9),backgroundColor:'rgba(139,124,246,0.5)',borderRadius:4},{label:'Net Income',data:ni.map(v=>v/1e9),backgroundColor:'rgba(52,211,153,0.5)',borderRadius:4}]},options:{...opts,scales:{y:scaleY,x:scaleX}}})}catch(e){}
+
+  // Price charts
+  try{const p1y=d.price_hist_1y||[];if(p1y.length){new Chart(document.getElementById('c-price1y-'+t),{type:'line',data:{labels:p1y.map(p=>p.date),datasets:[{label:'Price',data:p1y.map(p=>p.close),borderColor:'#8b7cf6',backgroundColor:'rgba(139,124,246,0.08)',fill:true,tension:0.2,pointRadius:0}]},options:{...opts,scales:{y:{ticks:{color:'#5c6080',callback:v=>'$'+v.toFixed(0)},grid:{color:'#1c1f2e'}},x:{ticks:{color:'#5c6080',maxTicksLimit:6},grid:{display:false}}}}})}}catch(e){}
+  try{const p1m=d.price_hist_1m||[];if(p1m.length){new Chart(document.getElementById('c-price1m-'+t),{type:'line',data:{labels:p1m.map(p=>p.date),datasets:[{label:'Price',data:p1m.map(p=>p.close),borderColor:'#60a5fa',backgroundColor:'rgba(96,165,250,0.08)',fill:true,tension:0.2,pointRadius:1}]},options:{...opts,scales:{y:{ticks:{color:'#5c6080',callback:v=>'$'+v.toFixed(0)},grid:{color:'#1c1f2e'}},x:{ticks:{color:'#5c6080',maxTicksLimit:6},grid:{display:false}}}}})}}catch(e){}
+
+  // Revenue breakdown pies
+  try{const rb=d.rev_breakdown||{};const geo=rb.by_geography||[];if(geo.length){const colors=['rgba(139,124,246,0.7)','rgba(52,211,153,0.7)','rgba(251,191,36,0.7)','rgba(248,113,113,0.7)','rgba(96,165,250,0.7)','rgba(156,163,175,0.5)'];new Chart(document.getElementById('c-revgeo-'+t),{type:'doughnut',data:{labels:geo.map(g=>g.name),datasets:[{data:geo.map(g=>(g.pct*100).toFixed(1)),backgroundColor:colors.slice(0,geo.length)}]},options:{...opts}})}}catch(e){}
+  try{const rb=d.rev_breakdown||{};const seg=rb.by_segment||[];if(seg.length){const colors=['rgba(248,113,113,0.7)','rgba(139,124,246,0.7)','rgba(251,191,36,0.7)','rgba(52,211,153,0.7)','rgba(96,165,250,0.7)','rgba(156,163,175,0.5)'];new Chart(document.getElementById('c-revseg-'+t),{type:'doughnut',data:{labels:seg.map(s=>s.name),datasets:[{data:seg.map(s=>(s.pct*100).toFixed(1)),backgroundColor:colors.slice(0,seg.length)}]},options:{...opts}})}}catch(e){}
 
   try{new Chart(document.getElementById('c-radar-'+t),{type:'radar',data:{labels:['Gross','Op Margin','Net','ROE','ROA'],datasets:[{label:t,data:[(m.gross||0)*100,(m.operating||0)*100,(m.net||0)*100,(r.roe||0)*100,(r.roa||0)*100],borderColor:'rgba(139,124,246,0.8)',backgroundColor:'rgba(139,124,246,0.1)',pointBackgroundColor:'#8b7cf6'}]},options:{...opts,scales:{r:{ticks:{color:'#5c6080',backdropColor:'transparent'},grid:{color:'#1c1f2e'},pointLabels:{color:'#5c6080',font:{size:11}}}}}})}catch(e){}
 
