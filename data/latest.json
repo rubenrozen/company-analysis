@@ -2,8 +2,8 @@
   {
     "ticker": "RTX",
     "name": "RTX Corporation",
-    "date": "2026-03-14",
-    "file": "data/RTX_2026-03-14.json",
+    "date": "2026-03-15",
+    "file": "data/RTX_2026-03-15.json",
     "price": 204.52,
     "verdict": "Hold",
     "sector": "Industrials",
